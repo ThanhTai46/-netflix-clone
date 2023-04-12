@@ -6,6 +6,15 @@ import React, { useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { signupScheme } from "@/lib/schema";
+import { toast } from "react-toastify";
+import { configToast } from "@/common/common";
+import { apiPath } from "@/common/path";
+import { message } from "@/common/message";
+import { getSession, signIn } from "next-auth/react";
+import { useRouter } from "next/router";
+import { FcGoogle } from "react-icons/fc";
+import { FaGithub } from "react-icons/fa";
+import { NextPageContext } from "next";
 
 type FormData = {
   username: string;
@@ -16,7 +25,9 @@ type FormData = {
 export default function Auth() {
   const {
     register,
+    getValues,
     handleSubmit,
+    reset,
     formState: { errors },
   } = useForm<FormData>({
     resolver: yupResolver(signupScheme),
@@ -26,31 +37,57 @@ export default function Auth() {
       password: "",
     },
   });
+
+  const router = useRouter();
   const [variant, setVariant] = useState("login");
+  const email = getValues("email");
+  const password = getValues("password");
 
   const toggleVariant = useCallback(() => {
     setVariant((currentVariant) =>
       currentVariant === "login" ? "register" : "login"
     );
   }, []);
-  console.log("errors: ", errors);
 
-  const onSubmit = (data: FormData) => {
-    console.log("errors: ", errors);
-
-    console.log(data);
+  const onSubmit = async (data: FormData) => {
+    await handleRegister(data);
+    await reset({
+      username: "",
+      email: "",
+      password: "",
+    });
   };
-  // const handleRegister = useCallback(async () => {
-  //   try {
-  //     await axios.post(apiPath.register, {
-  //       email,
-  //       password,
-  //       username,
-  //     });
-  //   } catch (err) {
-  //     console.log("err: ", err);
-  //   }
-  // }, [email, password, username]);
+
+  const login = useCallback(async () => {
+    try {
+      await signIn("credentials", {
+        email,
+        password,
+        callbackUrl: "/",
+        redirect: false,
+      });
+      router.push("/");
+    } catch (error) {
+      toast.error(message.error, configToast);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [getValues("email"), getValues("password")]);
+  const handleRegister = useCallback(
+    async (data: FormData) => {
+      try {
+        await axios.post(apiPath.register, {
+          ...data,
+        });
+        toast.success(message.success, configToast);
+
+        login();
+      } catch (err) {
+        toast.error(message.error, configToast);
+      }
+    },
+    [login]
+  );
+
   return (
     <div
       className="relative h-full w-full bg-[url('/images/hero.jpeg')] 
@@ -109,11 +146,29 @@ export default function Auth() {
                 )}
               </div>
               <button
-                // onClick={handleR}
+                onClick={
+                  variant === "login" ? () => login() : () => handleRegister
+                }
                 className="bg-red-600 py-3 text-white rounded-md w-full mt-10 hover:bg-red-700 transition"
               >
                 {variant === "login" ? "Login" : "Register"}
               </button>
+
+              <div className="flex flex-row items-center justify-center gap-4 mt-8">
+                <div
+                  className="w-10 h-10 rounded-full bg-white flex justify-center items-center hover:opacity-80 cursor-pointer transition"
+                  onClick={() =>
+                    signIn("google", {
+                      callbackUrl: "/",
+                    })
+                  }
+                >
+                  <FcGoogle size={30} />
+                </div>
+                <div className="w-10 h-10 rounded-full bg-white flex justify-center items-center hover:opacity-80 cursor-pointer transition">
+                  <FaGithub size={30} />
+                </div>
+              </div>
             </form>
 
             <p className="text-neutral-500 mt-12">
@@ -132,4 +187,19 @@ export default function Auth() {
       </div>
     </div>
   );
+}
+export async function getServerSideProps(context: NextPageContext) {
+  const session = await getSession(context);
+
+  if (session) {
+    return {
+      redirect: {
+        destination: "/",
+        permanent: false,
+      },
+    };
+  }
+  return {
+    props: {},
+  };
 }
