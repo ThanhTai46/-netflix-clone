@@ -10,10 +10,10 @@ import { toast } from "react-toastify";
 import { configToast } from "@/common/common";
 import { apiPath } from "@/common/path";
 import { message } from "@/common/message";
-import { getSession, signIn } from "next-auth/react";
+import { getSession, signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/router";
 import { FcGoogle } from "react-icons/fc";
-import { FaGithub } from "react-icons/fa";
+import { BsFacebook } from "react-icons/bs";
 import { NextPageContext } from "next";
 
 type FormData = {
@@ -37,12 +37,13 @@ export default function Auth() {
       password: "",
     },
   });
-
   const router = useRouter();
   const [variant, setVariant] = useState("login");
   const email = getValues("email");
   const password = getValues("password");
 
+  const session = getSession();
+  console.log("session: ", session);
   const toggleVariant = useCallback(() => {
     setVariant((currentVariant) =>
       currentVariant === "login" ? "register" : "login"
@@ -63,12 +64,14 @@ export default function Auth() {
       await signIn("credentials", {
         email,
         password,
-        callbackUrl: "/",
         redirect: false,
+        callbackUrl: "/profiles",
       });
-      router.push("/");
+
+      router.push("/profiles");
+      toast.success(message.LOGIN_SUCCESS, configToast);
     } catch (error) {
-      toast.error(message.error, configToast);
+      toast.error(message.ERROR, configToast);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getValues("email"), getValues("password")]);
@@ -78,11 +81,11 @@ export default function Auth() {
         await axios.post(apiPath.register, {
           ...data,
         });
-        toast.success(message.success, configToast);
+        toast.success(message.REGISTER_SUCCESS, configToast);
 
         login();
       } catch (err) {
-        toast.error(message.error, configToast);
+        toast.error(message.ERROR, configToast);
       }
     },
     [login]
@@ -133,6 +136,7 @@ export default function Auth() {
                   </span>
                 )}
                 <Input
+                  showPassword
                   register={register}
                   name="password"
                   label="Password"
@@ -159,14 +163,21 @@ export default function Auth() {
                   className="w-10 h-10 rounded-full bg-white flex justify-center items-center hover:opacity-80 cursor-pointer transition"
                   onClick={() =>
                     signIn("google", {
-                      callbackUrl: "/",
+                      callbackUrl: "/profiles",
                     })
                   }
                 >
                   <FcGoogle size={30} />
                 </div>
-                <div className="w-10 h-10 rounded-full bg-white flex justify-center items-center hover:opacity-80 cursor-pointer transition">
-                  <FaGithub size={30} />
+                <div
+                  className="w-10 h-10 rounded-full bg-white flex justify-center items-center hover:opacity-80 cursor-pointer transition"
+                  onClick={() =>
+                    signIn("facebook", {
+                      callbackUrl: "/profiles",
+                    })
+                  }
+                >
+                  <BsFacebook size={30} className="text-[#3F51B5]" />
                 </div>
               </div>
             </form>
@@ -195,7 +206,7 @@ export async function getServerSideProps(context: NextPageContext) {
     return {
       redirect: {
         destination: "/",
-        permanent: false,
+        permanent: true,
       },
     };
   }
