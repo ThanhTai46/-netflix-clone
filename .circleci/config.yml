@@ -1,7 +1,76 @@
 version: 2.1
-orbs:
-  node: circleci/node@3.0.0
+executors:
+  node-executor:
+    docker:
+      - image: node:lts-buster-slim
+
+jobs:
+  build:
+    executor: node-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.7
+      - run:
+          name: Install dependencies
+          command: yarn install
+      - run:
+          name: Generate Prisma schema
+          command: yarn prisma:generate
+      - run:
+          name: Build
+          command: yarn build
+      - store_artifacts:
+          path: .next
+      - store_artifacts:
+          path: public
+      - store_artifacts:
+          path: prisma
+
+  deploy:
+    executor: node-executor
+    steps:
+      - checkout
+      - setup_remote_docker:
+          version: 20.10.7
+      - run:
+          name: Install dependencies
+          command: yarn install --production
+      - run:
+          name: Generate Prisma schema
+          command: yarn run prisma:generate
+      - run:
+          name: Copy prod_build dependencies
+          command: cp -R node_modules prod_node_modules
+      - setup_remote_docker:
+          version: 20.10.7
+      - restore_artifacts:
+          path: .next
+      - restore_artifacts:
+          path: public
+      - restore_artifacts:
+          path: prisma
+      - run:
+          name: Build and push Docker image
+          command: |
+            docker build -t <YOUR_IMAGE_NAME> .
+            docker push <YOUR_IMAGE_NAME>
+      - run:
+          name: Deploy to production
+          command: |
+            # Add your deployment command here
+
 workflows:
-  node-tests:
-    jobs: 
-      -node/build
+  version: 2
+  build-deploy:
+    jobs:
+      - build:
+          filters:
+            branches:
+              only: master
+      - deploy:
+          requires:
+            - build
+          filters:
+            branches:
+              only: master

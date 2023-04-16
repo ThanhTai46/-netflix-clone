@@ -3,7 +3,7 @@ RUN apt-get update && apt-get install libssl-dev ca-certificates -y
 WORKDIR /app
 
 # build Layer
-COPY package.json ./
+COPY package.json yarn.lock ./
 FROM base as build
 RUN export NODE_ENV=production
 RUN yarn
