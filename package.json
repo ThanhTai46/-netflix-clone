@@ -7,9 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:reset": "prisma reset"
+    "seed": "prisma db seed --preview-feature",
+    "db:push": "prisma db push --preview-feature",
+    "db:reset": "prisma migrate reset --preview-feature"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.0.1",
