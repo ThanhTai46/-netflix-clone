@@ -98,7 +98,12 @@ export default function Auth() {
     >
       <div className="bg-black lg:bg-opacity-50 w-full h-full">
         <nav className="px-12 py-5">
-          <img src="/images/logo.png" alt="logo" className="h-12" />
+          <img
+            onClick={() => router.push("/")}
+            src="/images/logo.png"
+            alt="logo"
+            className="h-12 cursor-pointer"
+          />
         </nav>
         <div className="flex justify-center">
           <div className="bg-black bg-opacity-70 px-16 py-16 self-center mt-2 lg:w-2/5 lg:max-w-md rounded-md w-full">
